@@ -308,12 +308,13 @@ var point6=new pointObject(28.541156, 77.159763,6);
 var sphereKnn=require("sphere-knn");
 lookup=sphereKnn([point1,point2,point3,point4,point5,point6]);
 options ={
-    enableHighAccuracy:false,
-    timeout:100,
+    enableHighAccuracy:true,
+    timeout:1000,
     maximumage: 0
 }
 function liveLocation(evt){
-    var currPointObj =lookup(evt.coords.latitude,evt.coords.longitude,1,40)[0];
+	console.log(lookup(evt.coords.latitude,evt.coords.longitude,6))
+    var currPointObj =lookup(evt.coords.latitude,evt.coords.longitude,6)[0];
     var currentPoint=currPointObj.pointnum;
     display(currentPoint);
 }
@@ -323,7 +324,7 @@ function userShuttleDistance(currentPoint,userPoint){
 }
 function display(currentPoint){
   document.querySelector("h2").innerHTML="Shuttle is At Point"+currentPoint;
-  var dist=userShuttleDistance(currentPoint,1);
+  var dist=userShuttleDistance(currentPoint,point1.pointnum);
   document.querySelector("h3").innerHTML="Shuttle is at a distance "+dist+" metre";  
 }
 function error(evt){
@@ -333,4 +334,7 @@ function buttonclick(){
   id=navigator.geolocation.watchPosition(liveLocation,error,options);
 }
 document.querySelector(".btn").addEventListener("click",buttonclick);
+document.querySelector(".btn2").addEventListener("click",function(){
+	navigator.geolocation.clearWatch(id);
+});
 },{"sphere-knn":1}]},{},[5]);

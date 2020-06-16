@@ -313,7 +313,7 @@ options ={
     maximumage: 0
 }
 function liveLocation(evt){
-    var currPointObj =lookup(evt.coords.latitude,evt.coords.longitude,1,100)[0];
+    var currPointObj =lookup(evt.coords.latitude,evt.coords.longitude,1,40)[0];
     var currentPoint=currPointObj.pointnum;
     display(currentPoint);
 }

@@ -186,9 +186,7 @@ process.umask = function() { return 0; };
 
 },{}],2:[function(require,module,exports){
 var id, options;
-//firebASE FOR STORING SHUTTLE IN realtime database.
-// Your web app's Firebase configuration
-  var firebaseConfig = {
+var firebaseConfig = {
     apiKey: "AIzaSyCuN-7SqZLt7ffNVWbnOV7w-aDu_5a0maw",
     authDomain: "dtu-shuttle.firebaseapp.com",
     databaseURL: "https://dtu-shuttle.firebaseio.com",
@@ -204,18 +202,29 @@ var id, options;
   var sphereKnn=require("sphere-knn");
   firebase.initializeApp(firebaseConfig);
   var database=firebase.database();
-  //function to write coordinates+shuttlepoint to firebase.
-  function writeshuttlelocation(shuttlepoint,latitude, longitude) {
-  firebase.database().ref('shuttlelocation').set({
-    shuttlepoint: shuttlepoint,
-    shuttlelatitude: latitude,
-    shuttlelongitude : longitude
-  });
-}
 function pointObject(lat,lng,num){
     this.latitude=lat,
     this.longitude=lng,
     this.pointnum=num
+}
+function calculateDistance(lat1, lng1, lat2, lng2) {
+  if (typeof(Number.prototype.toRad) === "undefined") {
+    Number.prototype.toRad = function() {
+      return this * Math.PI / 180;
+    }
+  }
+  var R = 6371; // km
+  var dLat = (lat2-lat1).toRad();
+  var dLon = (lng2-lng1).toRad();
+  var lat1 = lat1.toRad();
+  var lat2 = lat2.toRad();
+
+  var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.sin(dLon/2) * Math.sin(dLon/2) * Math.cos(lat1) *    Math.cos(lat2); 
+  var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+  var distance = R * c;
+
+  return distance;
 }
 var point1=new pointObject(28.541011, 77.157927,1);
 var point2=new pointObject(28.540815, 77.158387,2);
@@ -230,21 +239,40 @@ options ={
     maximumage: 0
 }
 function liveLocation(evt){
-	console.log(lookup(evt.coords.latitude,evt.coords.longitude,6))
+	//console.log(lookup(evt.coords.latitude,evt.coords.longitude,6)[0].pointnum)
+    var lata=evt.coords.latitude;var lona=evt.coords.longitude;
     var currPointObj =lookup(evt.coords.latitude,evt.coords.longitude,6)[0];
     var currentPoint=currPointObj.pointnum;
-    display(currPointObj);
+    var distkm =calculateDistance(evt.coords.latitude,evt.coords.longitude, currPointObj.latitude, currPointObj.longitude)
+    console.log(distkm*1000);
+    if(distkm*1000<10) display1(currPointObj);//display(distkm);
+    else display(currPointObj,distkm);
 }
-/**function userShuttleDistance(currentPoint,userPoint){
-  var distance=Math.abs(currentPoint-userPoint)*50;
-  return distance;
-}**/
-function display(currPointObj){
-  document.querySelector("h2").innerHTML="Shuttle is At Point"+currPointObj.pointnum;
-  //write coordinates+shuttlepoint to firebase.
-  writeshuttlelocation(currPointObj.pointnum,currPointObj.latitude,currPointObj.longitude);
-  //var dist=userShuttleDistance(currentPoint,point1.pointnum);
-  //document.querySelector("h3").innerHTML="Shuttle is at a distance "+dist+" metre";  
+function usershuttledistance(userpoint,shuttlepoint){
+  var userShuttleDist=(userpoint-shuttlepoint)*50;
+  return userShuttleDist;
+}
+//read from database
+//had to call shuttledist from inside syncdata() as maybe this is not defined as a public function hence values are not available outside this funcion scope
+function syncData(userpoint){
+  var ShuttleLocObject=database.ref().child('shuttlelocation');
+  ShuttleLocObject.on('value',function(snap){
+    console.log(snap.val().shuttlepoint);
+    var shuttlepoint = snap.val().shuttlepoint;
+    var shuttledist=usershuttledistance(userpoint,shuttlepoint);
+    document.querySelector("h4").innerHTML="Shuttle is at distance "+shuttledist+" metre";
+  });
+}
+function display1(currPointObj){
+  var userpoint=currPointObj.pointnum;
+  document.querySelector("h2").innerHTML="You have reached point "+userpoint;
+  syncData(userpoint);
+}
+function display(currPointObj,distkm){
+  var userpoint=currPointObj.pointnum;
+  document.querySelector("h2").innerHTML="Nearest Pickup Point "+userpoint;
+  document.querySelector("h3").innerHTML="At a distance "+distkm*1000+" metre";  
+  syncData(userpoint);
 }
 function error(evt){
     console.log("error");
